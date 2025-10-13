@@ -1,0 +1,22 @@
+{
+  "organizations": [
+    {
+      "id": "af081294-0112-4653-8131-691d790ebc07",
+      "name": "Tiqo",
+      "domain": "tiqo.co",
+      "plan": "free",
+      "user_count": 3,
+      "max_users": 10,
+      "created_at": "2025-10-07T06:07:34.427943"
+    },
+    {
+      "id": "d5402035-af59-4d01-9556-cc0d99e6d4d7",
+      "name": "norrsent",
+      "domain": "norrsent.co",
+      "plan": "free",
+      "user_count": 1,
+      "max_users": 10,
+      "created_at": "2025-10-10T12:23:01.351645"
+    }
+  ]
+}

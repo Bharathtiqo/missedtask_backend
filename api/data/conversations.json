@@ -1,0 +1,233 @@
+{
+  "conversations": [
+    {
+      "id": "team-chat-0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "type": "team",
+      "name": "Team Chat",
+      "participants": [
+        "da2d9c04-d580-4edc-a304-bf9637f6b2e5",
+        "0ae46bf9-5f10-437b-9c51-d87b14d35e73",
+        "e315eab8-8826-4b80-a941-5be8205a5a02",
+        "4d5be603-c072-4f62-a78b-9895d5514da4"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-09-26T05:42:33.614934",
+      "updated_at": "2025-10-03T19:44:32.585403"
+    },
+    {
+      "id": "team-chat-a083dcfd-3f31-4270-9b8e-ee7a70769275",
+      "type": "team",
+      "name": "Team Chat",
+      "participants": [
+        "9a179b6d-5576-4436-9b9c-414beccb85dc",
+        "411edbd9-1b51-49df-8b6f-f30da09cc398"
+      ],
+      "organization_id": "a083dcfd-3f31-4270-9b8e-ee7a70769275",
+      "created_at": "2025-09-26T05:42:33.616106",
+      "updated_at": "2025-09-26T07:07:47.845936"
+    },
+    {
+      "id": "dm-0ae46bf9-5f10-437b-9c51-d87b14d35e73-da2d9c04-d580-4edc-a304-bf9637f6b2e5",
+      "type": "direct",
+      "name": "Bharath",
+      "participants": [
+        "da2d9c04-d580-4edc-a304-bf9637f6b2e5",
+        "0ae46bf9-5f10-437b-9c51-d87b14d35e73"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-09-26T06:53:58.893448",
+      "updated_at": "2025-10-06T15:45:17.071677"
+    },
+    {
+      "id": "dm-da2d9c04-d580-4edc-a304-bf9637f6b2e5-e315eab8-8826-4b80-a941-5be8205a5a02",
+      "type": "direct",
+      "name": "narendra",
+      "participants": [
+        "da2d9c04-d580-4edc-a304-bf9637f6b2e5",
+        "e315eab8-8826-4b80-a941-5be8205a5a02"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-09-26T06:54:15.925162",
+      "updated_at": "2025-09-26T07:01:27.635098"
+    },
+    {
+      "id": "dm-0ae46bf9-5f10-437b-9c51-d87b14d35e73-4d5be603-c072-4f62-a78b-9895d5514da4",
+      "type": "direct",
+      "name": "ranjith",
+      "participants": [
+        "0ae46bf9-5f10-437b-9c51-d87b14d35e73",
+        "4d5be603-c072-4f62-a78b-9895d5514da4"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-09-26T06:56:04.740692",
+      "updated_at": "2025-09-26T06:56:04.740692"
+    },
+    {
+      "id": "dm-0ae46bf9-5f10-437b-9c51-d87b14d35e73-e315eab8-8826-4b80-a941-5be8205a5a02",
+      "type": "direct",
+      "name": "narendra",
+      "participants": [
+        "0ae46bf9-5f10-437b-9c51-d87b14d35e73",
+        "e315eab8-8826-4b80-a941-5be8205a5a02"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-09-26T06:57:59.542271",
+      "updated_at": "2025-10-06T14:45:32.232535"
+    },
+    {
+      "id": "dm-411edbd9-1b51-49df-8b6f-f30da09cc398-9a179b6d-5576-4436-9b9c-414beccb85dc",
+      "type": "direct",
+      "name": "Hemanth M",
+      "participants": [
+        "411edbd9-1b51-49df-8b6f-f30da09cc398",
+        "9a179b6d-5576-4436-9b9c-414beccb85dc"
+      ],
+      "organization_id": "a083dcfd-3f31-4270-9b8e-ee7a70769275",
+      "created_at": "2025-09-26T07:07:58.768099",
+      "updated_at": "2025-09-26T07:08:02.030391"
+    },
+    {
+      "id": "team-chat-e4c66be9-52b5-4acd-8f9f-46c431b9bbb8",
+      "type": "team",
+      "name": "Team Chat",
+      "participants": [
+        "2e51b3c7-7622-4301-857b-13803ab0d163"
+      ],
+      "organization_id": "e4c66be9-52b5-4acd-8f9f-46c431b9bbb8",
+      "created_at": "2025-09-26T07:12:06.520243",
+      "updated_at": "2025-09-26T07:12:06.520243"
+    },
+    {
+      "id": "f5ad7c99-e3a4-4095-85f1-69b398edf1b4",
+      "type": "direct",
+      "name": "shape",
+      "participants": [
+        "da2d9c04-d580-4edc-a304-bf9637f6b2e5",
+        "0ae46bf9-5f10-437b-9c51-d87b14d35e73"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-10-06T15:54:58.128885",
+      "updated_at": "2025-10-06T15:55:05.624732"
+    },
+    {
+      "id": "a743691a-bbad-4829-a65f-28717c448c37",
+      "type": "direct",
+      "name": "Bharath",
+      "participants": [
+        "0ae46bf9-5f10-437b-9c51-d87b14d35e73",
+        "da2d9c04-d580-4edc-a304-bf9637f6b2e5"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-10-06T15:55:29.688356",
+      "updated_at": "2025-10-06T15:55:32.421105"
+    },
+    {
+      "id": "137fb680-fbfe-4c3b-a040-75385dfa81e8",
+      "type": "direct",
+      "name": "shape",
+      "participants": [
+        "da2d9c04-d580-4edc-a304-bf9637f6b2e5",
+        "0ae46bf9-5f10-437b-9c51-d87b14d35e73"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-10-06T15:57:22.149082",
+      "updated_at": "2025-10-06T15:57:30.065856"
+    },
+    {
+      "id": "959d55b1-488f-40e6-8401-80d391f8f3e6",
+      "type": "direct",
+      "name": "Bharath",
+      "participants": [
+        "0ae46bf9-5f10-437b-9c51-d87b14d35e73",
+        "da2d9c04-d580-4edc-a304-bf9637f6b2e5"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-10-06T15:57:42.474800",
+      "updated_at": "2025-10-06T15:57:45.721538"
+    },
+    {
+      "id": "56db9a62-d4ac-4c91-858a-237741a74583",
+      "type": "direct",
+      "name": "shape",
+      "participants": [
+        "da2d9c04-d580-4edc-a304-bf9637f6b2e5",
+        "0ae46bf9-5f10-437b-9c51-d87b14d35e73"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-10-06T15:57:55.375221",
+      "updated_at": "2025-10-06T15:57:58.008935"
+    },
+    {
+      "id": "bf027048-5322-45e4-8053-edba802cbc76",
+      "type": "direct",
+      "name": "Bharath",
+      "participants": [
+        "0ae46bf9-5f10-437b-9c51-d87b14d35e73",
+        "da2d9c04-d580-4edc-a304-bf9637f6b2e5"
+      ],
+      "organization_id": "0ac5c99c-6745-4837-b165-fea5707c2c10",
+      "created_at": "2025-10-06T15:58:05.912799",
+      "updated_at": "2025-10-06T15:59:59.617267"
+    },
+    {
+      "id": "team-chat-af081294-0112-4653-8131-691d790ebc07",
+      "type": "team",
+      "name": "Team Chat",
+      "participants": [
+        "461ba851-1598-4d8d-9c84-4cb52103d673",
+        "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+        "8416d559-597b-4556-8757-98ac1fcdae18"
+      ],
+      "organization_id": "af081294-0112-4653-8131-691d790ebc07",
+      "created_at": "2025-10-07T06:07:34.433165",
+      "updated_at": "2025-10-10T11:35:38.966657"
+    },
+    {
+      "id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
+      "type": "direct",
+      "name": "Shappe",
+      "participants": [
+        "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+        "461ba851-1598-4d8d-9c84-4cb52103d673"
+      ],
+      "organization_id": "af081294-0112-4653-8131-691d790ebc07",
+      "created_at": "2025-10-07T14:50:54.416984",
+      "updated_at": "2025-10-13T05:27:04.496290"
+    },
+    {
+      "id": "5bbb150b-841c-467a-8dfc-8138dc6f8d63",
+      "type": "direct",
+      "name": "Shappe",
+      "participants": [
+        "8416d559-597b-4556-8757-98ac1fcdae18",
+        "461ba851-1598-4d8d-9c84-4cb52103d673"
+      ],
+      "organization_id": "af081294-0112-4653-8131-691d790ebc07",
+      "created_at": "2025-10-10T11:37:32.513878",
+      "updated_at": "2025-10-10T11:37:32.513878"
+    },
+    {
+      "id": "1559b462-ee1d-4a3b-a18a-347e04db9e4a",
+      "type": "direct",
+      "name": "Bharath",
+      "participants": [
+        "8416d559-597b-4556-8757-98ac1fcdae18",
+        "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4"
+      ],
+      "organization_id": "af081294-0112-4653-8131-691d790ebc07",
+      "created_at": "2025-10-10T11:37:33.953309",
+      "updated_at": "2025-10-10T11:37:33.953309"
+    },
+    {
+      "id": "team-chat-d5402035-af59-4d01-9556-cc0d99e6d4d7",
+      "type": "team",
+      "name": "Team Chat",
+      "participants": [
+        "3090ed01-df9e-46af-a1d1-cc6fb348e09f"
+      ],
+      "organization_id": "d5402035-af59-4d01-9556-cc0d99e6d4d7",
+      "created_at": "2025-10-10T12:23:01.448937",
+      "updated_at": "2025-10-10T12:23:01.448937"
+    }
+  ]
+}
