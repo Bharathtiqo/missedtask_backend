@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(for file in \"g:/Bharath/MissedTask-backend/api/data\"/*.json)",
+      "Bash(done)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

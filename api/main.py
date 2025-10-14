@@ -67,7 +67,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://192.168.7.3:5173",
-         "https://missedtask-frontend.onrender.com"
+        "https://missedtask-frontend.onrender.com"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -538,17 +538,141 @@ def save_conversation_data(conversation_data):
 def save_conversation_message(msg_data):
     file_path = get_data_path("conversation_messages.json")
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    # Work on a copy so that normalization updates are persisted consistently
+    message_record = dict(msg_data) if isinstance(msg_data, dict) else {}
+    normalize_message_record(message_record)
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         data = {"messages": []}
 
-    if msg_data.get('id') not in [m.get('id') for m in data["messages"]]:
-        data["messages"].append(msg_data)
-        with open(file_path, 'w') as f:
-            json.dump(data, f, indent=2)
-        logger.info(f"Conversation message saved: {msg_data['id']}")
+    replaced = False
+    for idx, existing in enumerate(data.get("messages", [])):
+        if existing.get('id') == message_record.get('id'):
+            data["messages"][idx] = message_record
+            replaced = True
+            break
+
+    if not replaced:
+        data.setdefault("messages", []).append(message_record)
+
+    with open(file_path, 'w') as f:
+        json.dump(data, f, indent=2)
+    logger.info(f"Conversation message saved: {message_record.get('id')}")
+
+def normalize_message_record(message: dict) -> bool:
+    """
+    Normalize chat message dicts so API responses are consistent.
+
+    Returns True when the message was modified.
+    """
+    if not isinstance(message, dict):
+        return False
+
+    updated = False
+
+    # Ensure sender* aliases exist for legacy author* fields and vice versa
+    for new_key, legacy_key in (
+        ("sender_id", "author_id"),
+        ("sender_name", "author_name"),
+        ("sender_avatar", "author_avatar"),
+    ):
+        new_value = message.get(new_key)
+        legacy_value = message.get(legacy_key)
+        if new_value is None and legacy_value is not None:
+            message[new_key] = legacy_value
+            updated = True
+        elif legacy_value is None and new_value is not None:
+            message[legacy_key] = new_value
+            updated = True
+
+    # Standardize message type
+    message_type = message.get("message_type")
+    if not message_type:
+        legacy_type = message.get("type")
+        if legacy_type and legacy_type not in ("message", "text"):
+            message_type = str(legacy_type)
+        else:
+            message_type = "text"
+        message["message_type"] = message_type
+        updated = True
+    else:
+        message_type = str(message_type)
+    if not message.get("type"):
+        message["type"] = message_type
+        updated = True
+
+    # Edited flag normalisation
+    if "edited" not in message and "is_edited" in message:
+        message["edited"] = bool(message.get("is_edited"))
+        updated = True
+    elif "edited" not in message:
+        message["edited"] = False
+        updated = True
+
+    # Reply-to alias
+    if "reply_to" not in message and message.get("parent_message_id"):
+        message["reply_to"] = message.get("parent_message_id")
+        updated = True
+
+    # Ensure timestamps are serializable strings
+    created_at = message.get("created_at")
+    if isinstance(created_at, datetime):
+        message["created_at"] = created_at.isoformat()
+        updated = True
+    elif not created_at:
+        message["created_at"] = datetime.utcnow().isoformat()
+        updated = True
+
+    updated_at = message.get("updated_at")
+    if isinstance(updated_at, datetime):
+        message["updated_at"] = updated_at.isoformat()
+        updated = True
+
+    return updated
+
+def build_message_response(message: dict) -> ConversationMessageResponse:
+    """Convert stored message dicts into ConversationMessageResponse objects."""
+    normalize_message_record(message)
+
+    sender_id = message.get("sender_id") or message.get("author_id") or ""
+    sender_name = message.get("sender_name") or message.get("author_name") or ""
+    sender_avatar = message.get("sender_avatar") or message.get("author_avatar") or ""
+
+    sender_profile_picture = message.get("sender_profile_picture")
+    if not sender_profile_picture and sender_id:
+        sender = users_db.get(sender_id)
+        if sender:
+            sender_profile_picture = sender.get("profile_picture")
+
+    created_at = message.get("created_at")
+    if isinstance(created_at, datetime):
+        created_at = created_at.isoformat()
+    elif not created_at:
+        created_at = datetime.utcnow().isoformat()
+
+    message_type = message.get("message_type") or "text"
+    edited_value = message.get("edited")
+    if edited_value is None:
+        edited_value = bool(message.get("is_edited", False))
+
+    if not sender_id:
+        logger.warning(f"Message {message.get('id')} is missing sender information after normalization")
+
+    return ConversationMessageResponse(
+        id=str(message.get("id", "")),
+        content=message.get("content", ""),
+        sender_id=str(sender_id),
+        sender_name=sender_name,
+        sender_avatar=sender_avatar,
+        sender_profile_picture=sender_profile_picture,
+        conversation_id=str(message.get("conversation_id", "")),
+        created_at=str(created_at),
+        message_type=str(message_type),
+        edited=bool(edited_value),
+        reply_to=message.get("reply_to")
+    )
 
 def delete_conversation_message(message_id):
     """Delete a message from persistent storage"""
@@ -633,9 +757,21 @@ def load_chat_data_from_files():
     # Load conversation messages
     try:
         conv_data = safe_load_json(get_data_path("conversation_messages.json"), "messages")
+        messages_updated = False
         for m in conv_data.get("messages", []):
+            if normalize_message_record(m):
+                messages_updated = True
             conversation_messages_db[m['id']] = m
         logger.info(f"Loaded {len(conversation_messages_db)} conversation messages from file")
+
+        if messages_updated:
+            try:
+                file_path = get_data_path("conversation_messages.json")
+                with open(file_path, 'w') as f:
+                    json.dump({"messages": list(conversation_messages_db.values())}, f, indent=2)
+                logger.info("Normalized legacy conversation messages and persisted updates")
+            except Exception as e:
+                logger.error(f"Failed to persist normalized chat messages: {e}")
     except Exception:
         pass
     
@@ -801,13 +937,16 @@ def health_check():
         timestamp=datetime.utcnow().isoformat()
     )
 
+@app.get("/health", response_model=HealthResponse)
 @app.get("/test")
 def test_endpoint():
-    return {
-        "message": "API is working!",
-        "timestamp": datetime.utcnow().isoformat(),
-        "status": "ok"
-    }
+    """Health check alias endpoint"""
+    return HealthResponse(
+        ok=True,
+        service="Scope API",
+        version="1.0.0",
+        timestamp=datetime.utcnow().isoformat()
+    )
 
 # Authentication endpoints
 @app.post("/api/auth/signup")
@@ -1574,25 +1713,7 @@ async def get_conversations(current_user: dict = Depends(get_current_user)):
             last_message = conv_messages[-1] if conv_messages else None
             
             # Convert last message to response format
-            last_message_response = None
-            if last_message:
-                # Get sender's profile picture for last message
-                sender = users_db.get(last_message['author_id'])
-                sender_profile_picture = sender.get('profile_picture') if sender else None
-
-                last_message_response = ConversationMessageResponse(
-                    id=last_message['id'],
-                    content=last_message['content'],
-                    sender_id=last_message['author_id'],
-                    sender_name=last_message['author_name'],
-                    sender_avatar=last_message['author_avatar'],
-                    sender_profile_picture=sender_profile_picture,
-                    conversation_id=last_message['conversation_id'],
-                    created_at=last_message['created_at'],
-                    message_type=last_message.get('message_type', 'text'),
-                    edited=last_message.get('edited', False),
-                    reply_to=last_message.get('reply_to')
-                )
+            last_message_response = build_message_response(last_message) if last_message else None
             
             # For direct messages, set name to other participant's name
             conv_name = conv['name']
@@ -1763,7 +1884,7 @@ async def get_chat_messages(
         filtered_messages = filtered_messages[-limit:]  # Get last N messages
         
         logger.info(f"Found {len(filtered_messages)} messages for conversation {conversation_id}")
-        return [ConversationMessageResponse(**msg) for msg in filtered_messages]
+        return [build_message_response(msg) for msg in filtered_messages]
         
     except HTTPException:
         raise
@@ -1822,8 +1943,11 @@ async def send_chat_message(
             'author_avatar': current_user['avatar'],
             'conversation_id': conversation_id,
             'created_at': created_at,
-            'type': 'message'
+            'type': 'message',
+            'message_type': 'text'
         }
+
+        normalize_message_record(message)
         
         # Save to in-memory and file
         conversation_messages_db[message_id] = message
@@ -1835,32 +1959,20 @@ async def send_chat_message(
         save_conversation_data(conversation)
         
         # Create response message with profile picture
-        message_response = ConversationMessageResponse(
-            id=message['id'],
-            content=message['content'],
-            sender_id=message['author_id'],
-            sender_name=message['author_name'],
-            sender_avatar=message['author_avatar'],
-            sender_profile_picture=current_user.get('profile_picture'),
-            conversation_id=message['conversation_id'],
-            created_at=message['created_at'],
-            message_type='text'
-        )
+        message_response = build_message_response(message)
+        # Ensure sender profile picture is populated if we have it on the current user
+        if not message_response.sender_profile_picture and current_user.get('profile_picture'):
+            message_response = message_response.model_copy(
+                update={'sender_profile_picture': current_user.get('profile_picture')}
+            )
+
+        message_payload = message_response.model_dump()
+        message_payload.setdefault('type', message_payload.get('message_type', 'text'))
 
         # Broadcast to conversation participants
         broadcast_message = {
             'type': 'chat_message',
-            'message': {
-                'id': message['id'],
-                'content': message['content'],
-                'sender_id': message['author_id'],
-                'sender_name': message['author_name'],
-                'sender_avatar': message['author_avatar'],
-                'sender_profile_picture': current_user.get('profile_picture'),
-                'conversation_id': message['conversation_id'],
-                'created_at': message['created_at'],
-                'message_type': 'text'
-            },
+            'message': message_payload,
             'conversation_id': conversation_id
         }
 
@@ -1900,25 +2012,7 @@ async def get_conversation_messages(conversation_id: str, current_user: dict = D
         messages.sort(key=lambda x: x.get('created_at', ''))
 
         # Convert to response format
-        message_responses = []
-        for msg in messages:
-            # Get sender's profile picture
-            sender = users_db.get(msg['author_id'])
-            sender_profile_picture = sender.get('profile_picture') if sender else None
-
-            message_responses.append(ConversationMessageResponse(
-                id=msg['id'],
-                content=msg['content'],
-                sender_id=msg['author_id'],
-                sender_name=msg['author_name'],
-                sender_avatar=msg['author_avatar'],
-                sender_profile_picture=sender_profile_picture,
-                conversation_id=msg['conversation_id'],
-                created_at=msg['created_at'],
-                message_type=msg.get('message_type', 'text'),
-                edited=msg.get('edited', False),
-                reply_to=msg.get('reply_to')
-            ))
+        message_responses = [build_message_response(msg) for msg in messages]
 
         logger.info(f"Found {len(message_responses)} messages for conversation {conversation_id}")
         return message_responses

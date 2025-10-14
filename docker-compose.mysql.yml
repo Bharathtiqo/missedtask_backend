@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: missedtask-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: missedtask_password
+      MYSQL_DATABASE: missedtask
+      MYSQL_USER: missedtask
+      MYSQL_PASSWORD: missedtask_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pmissedtask_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  api:
+    build: .
+    container_name: missedtask-api
+    environment:
+      DATABASE_URL: mysql+pymysql://missedtask:missedtask_password@db:3306/missedtask
+      SECRET_KEY: scope-secret-key-2024-development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app/api
+      - ./api/data:/app/api/data
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 10 &&
+        python -m api.migrate_json_to_db &&
+        uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+    driver: local

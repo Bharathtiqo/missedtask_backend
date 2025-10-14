@@ -1,0 +1,28 @@
+services:
+  # Web Service (FastAPI Backend)
+  - type: web
+    name: missedtask-api
+    env: python
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python -m api.migrate_json_to_db && uvicorn api.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: missedtask-db
+          property: connectionString
+
+databases:
+  # PostgreSQL Database
+  - name: missedtask-db
+    databaseName: missedtask
+    user: missedtask
+    plan: free
+    region: oregon

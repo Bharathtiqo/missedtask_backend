@@ -8,7 +8,12 @@
       "author_avatar": "SH",
       "conversation_id": "team-chat-af081294-0112-4653-8131-691d790ebc07",
       "created_at": "2025-10-07T14:50:43.812603",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "65a0d3d6-a0a7-4643-9088-94b101b3005b",
@@ -18,7 +23,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-07T14:51:00.622733",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "13a82a9e-d065-4229-ac81-b39e5ef0ef11",
@@ -28,7 +38,12 @@
       "author_avatar": "SH",
       "conversation_id": "team-chat-af081294-0112-4653-8131-691d790ebc07",
       "created_at": "2025-10-07T14:55:52.919289",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "4b97fca6-61d7-4ad9-9f45-cb05e030ecae",
@@ -38,7 +53,12 @@
       "author_avatar": "BH",
       "conversation_id": "team-chat-af081294-0112-4653-8131-691d790ebc07",
       "created_at": "2025-10-07T14:56:20.309381",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "228ced22-72b2-419f-9485-7a68fa087f82",
@@ -48,7 +68,12 @@
       "author_avatar": "SH",
       "conversation_id": "team-chat-af081294-0112-4653-8131-691d790ebc07",
       "created_at": "2025-10-07T15:03:07.638809",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "9ea48183-5502-40b1-90bc-9f7e5413228e",
@@ -58,7 +83,12 @@
       "author_avatar": "SH",
       "conversation_id": "team-chat-af081294-0112-4653-8131-691d790ebc07",
       "created_at": "2025-10-07T15:05:06.772072",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "b6410b86-5958-42fe-b8c4-22fd8ffefac0",
@@ -68,7 +98,12 @@
       "author_avatar": "SH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-07T15:29:23.615869",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "bd79a3dc-8901-415d-8153-b531a5cd5b1a",
@@ -78,7 +113,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-07T19:43:13.628673",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "329cf862-68ca-4ccb-90cd-13e6c1789992",
@@ -88,7 +128,12 @@
       "author_avatar": "SH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-07T19:43:41.176736",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "9b28ddfd-ab10-4c64-b230-1db7e8a45862",
@@ -98,7 +143,12 @@
       "author_avatar": "SH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T06:47:56.271503",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "305dc117-81d8-4fe1-895d-3c2d6dcd4d34",
@@ -108,7 +158,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T06:51:12.194910",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "5f52d84d-b0fc-4067-a2ab-557c294caaf7",
@@ -118,7 +173,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T06:56:26.345323",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "56dc7f92-c466-4463-abc0-781d8c6aea08",
@@ -128,7 +188,12 @@
       "author_avatar": "SH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T06:58:06.235516",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "9ea0df17-17d7-4063-8aea-434ef79b7727",
@@ -138,7 +203,12 @@
       "author_avatar": "SH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T06:58:16.180379",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "8d4cacb0-e29e-4764-a81e-4d717402429a",
@@ -148,7 +218,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T23:28:14.448178",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "16a815d3-647d-4afc-a05c-4f325be9a018",
@@ -158,7 +233,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T23:32:32.019178",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "7535029c-44cb-4934-b2a0-64c9dbd78e7a",
@@ -168,7 +248,12 @@
       "author_avatar": "SH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T23:37:20.929049",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "45346789-17d1-4538-b193-3f4c5fc8b450",
@@ -178,7 +263,12 @@
       "author_avatar": "SH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T23:39:00.760257",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "87b5b523-0ec2-4c27-9d9f-30f639ea58d1",
@@ -188,7 +278,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T23:50:39.710416",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "f8028b3b-6612-4331-b800-e30a158e3814",
@@ -198,7 +293,12 @@
       "author_avatar": "SH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T23:53:53.629134",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "a2f688d9-e472-403c-be74-3e1cd973f392",
@@ -208,7 +308,12 @@
       "author_avatar": "SH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-09T23:54:10.760438",
-      "type": "message"
+      "type": "message",
+      "sender_id": "461ba851-1598-4d8d-9c84-4cb52103d673",
+      "sender_name": "Shappe",
+      "sender_avatar": "SH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "9cce0c5e-b7a0-48e1-85fc-637261cfbb6b",
@@ -218,7 +323,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-10T04:34:26.546099",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "82dc9485-573d-4200-b5eb-e0f4292ce82b",
@@ -228,7 +338,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-10T11:34:15.224430",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "6e206588-9590-419a-874b-0f5f1467d654",
@@ -238,7 +353,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-13T04:27:18.356417",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     },
     {
       "id": "168888f8-9b7d-4a79-9c48-36f01ac69d13",
@@ -248,7 +368,12 @@
       "author_avatar": "BH",
       "conversation_id": "be76856b-5ef9-4f08-bc5b-f9e0309a8633",
       "created_at": "2025-10-13T05:27:04.496290",
-      "type": "message"
+      "type": "message",
+      "sender_id": "f2284f54-ff4b-41cf-89b5-b2fc5caa9ff4",
+      "sender_name": "Bharath",
+      "sender_avatar": "BH",
+      "message_type": "text",
+      "edited": false
     }
   ]
 }
