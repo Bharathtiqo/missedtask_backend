@@ -61,7 +61,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     password_hash = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    profile_picture = Column(LONGTEXT)  # Base64 encoded image - LONGTEXT for MySQL, works as Text for others
+    profile_picture = Column(Text().with_variant(LONGTEXT, "mysql"))  # Base64 encoded image storage
 
     # Relationships
     organization = relationship("Organization", back_populates="users")

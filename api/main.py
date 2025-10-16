@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, status, WebSocket, WebSocke
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Set
 from enum import Enum
 import uuid
 from datetime import datetime, timedelta
@@ -14,6 +14,63 @@ import os
 import asyncio
 from starlette.responses import StreamingResponse
 from starlette.requests import Request
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (only in local/dev, not on Render)
+if not os.getenv("RENDER"):
+    load_dotenv()
+
+# Import database modules
+try:
+    from .database import init_db, get_db, engine, DATABASE_URL
+    from .models import (
+        Issue as IssueModel,
+        IssueStatus as ModelIssueStatus,
+        IssueType as ModelIssueType,
+        Priority as ModelPriority,
+    )
+except ImportError:
+    # Allows running `python api/main.py` without package context.
+    import sys
+    from pathlib import Path
+    import importlib.util
+    import types
+
+    current_dir = Path(__file__).resolve().parent
+    parent_dir = current_dir.parent
+
+    for path in (current_dir, parent_dir):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+
+    package_name = "api"
+    if package_name not in sys.modules:
+        package = types.ModuleType(package_name)
+        package.__path__ = [str(current_dir)]
+        sys.modules[package_name] = package
+
+    def _load_module(name: str, path: Path):
+        spec = importlib.util.spec_from_file_location(name, path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Could not load module {name} from {path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    database_module = _load_module("api.database", current_dir / "database.py")
+    models_module = _load_module("api.models", current_dir / "models.py")
+
+    init_db = database_module.init_db  # type: ignore
+    get_db = database_module.get_db  # type: ignore
+    engine = database_module.engine  # type: ignore
+    DATABASE_URL = database_module.DATABASE_URL  # type: ignore
+
+    IssueModel = models_module.Issue  # type: ignore
+    ModelIssueStatus = models_module.IssueStatus  # type: ignore
+    ModelIssueType = models_module.IssueType  # type: ignore
+    ModelPriority = models_module.Priority  # type: ignore
+from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 try:
     import websockets  # type: ignore
@@ -279,6 +336,63 @@ active_chat_connections: Dict[str, List[Dict[str, Any]]] = {}
 sse_connections: Dict[str, List[asyncio.Queue]] = {}
 presence_counters: Dict[str, Dict[str, int]] = {}
 
+def user_has_active_session(user_id: Optional[str]) -> bool:
+    """Check whether the given user has an active access token."""
+    if not user_id:
+        return False
+    return any(uid == user_id for uid in sessions_db.values())
+
+
+def _enum_value(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    if hasattr(value, "value"):
+        return value.value
+    return str(value)
+
+
+def issue_model_to_dict(issue: IssueModel) -> Dict[str, Any]:
+    return {
+        "id": issue.id,
+        "key": issue.key,
+        "title": issue.title,
+        "description": issue.description or "",
+        "issue_type": _enum_value(issue.issue_type),
+        "status": _enum_value(issue.status),
+        "priority": _enum_value(issue.priority),
+        "story_points": issue.story_points,
+        "assignee_id": issue.assignee_id,
+        "reporter_id": issue.reporter_id,
+        "organization_id": issue.organization_id,
+        "labels": list(issue.labels or []),
+        "visibility": issue.visibility or "public",
+        "created_at": issue.created_at.isoformat() if issue.created_at else datetime.utcnow().isoformat(),
+        "updated_at": issue.updated_at.isoformat() if issue.updated_at else datetime.utcnow().isoformat(),
+        "deadline": issue.due_date.isoformat() if issue.due_date else None,
+        "epic_id": issue.epic_id,
+        "sprint_id": issue.sprint_id,
+    }
+
+
+def issue_dict_to_response(issue_data: Dict[str, Any]) -> IssueResponse:
+    payload = dict(issue_data)
+    payload["issue_type"] = IssueType(_enum_value(issue_data.get("issue_type")))
+    payload["status"] = IssueStatus(_enum_value(issue_data.get("status")))
+    payload["priority"] = Priority(_enum_value(issue_data.get("priority")))
+    payload["labels"] = issue_data.get("labels", [])
+    return IssueResponse(**payload)
+
+def get_online_user_ids_for_org(organization_id: Optional[str]) -> Set[str]:
+    """Return online user IDs for a specific organization based on active tokens."""
+    if not organization_id:
+        return set()
+    online_ids: Set[str] = set()
+    for token_user_id in sessions_db.values():
+        user = users_db.get(token_user_id)
+        if user and user.get('organization_id') == organization_id:
+            online_ids.add(token_user_id)
+    return online_ids
+
 def _increment_presence(organization_id: str, user_id: str) -> bool:
     org = presence_counters.setdefault(organization_id, {})
     previous = org.get(user_id, 0)
@@ -494,6 +608,22 @@ def save_issue_data(issue_data):
     with open(file_path, 'w') as f:
         json.dump(data, f, indent=2)
     logger.info(f"Issue saved to file: {issue_data.get('key', issue_data.get('id'))}")
+
+def remove_issue_from_file(issue_id: str):
+    file_path = get_data_path("issues.json")
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return
+
+    original_count = len(data.get("issues", []))
+    data["issues"] = [issue for issue in data.get("issues", []) if issue.get("id") != issue_id]
+
+    if len(data["issues"]) != original_count:
+        with open(file_path, 'w') as f:
+            json.dump(data, f, indent=2)
+        logger.info(f"Issue removed from file: {issue_id}")
 
 def save_comment_data(comment_data):
     file_path = get_data_path("comments.json")
@@ -1127,12 +1257,27 @@ async def verify_otp(request: VerifyOTPRequest):
     
     del otp_db[request.email]
     
+    was_online = user_has_active_session(user_id)
     access_token = create_access_token(user_id)
+    
+    if not was_online:
+        await broadcast_to_organization(
+            org_id,
+            {
+                'type': 'user_status_change',
+                'user_id': user_id,
+                'user_name': user['name'],
+                'user_avatar': user.get('avatar'),
+                'is_online': True
+            }
+        )
     
     logger.info(f"User created successfully: {user['name']} ({user['email']})")
     log_data_state()
     
-    user_response = UserResponse(**{k: v for k, v in user.items() if k != 'password_hash'})
+    user_payload = {k: v for k, v in user.items() if k != 'password_hash'}
+    user_payload['is_online'] = True
+    user_response = UserResponse(**user_payload)
     org_response = OrganizationResponse(**organization)
     
     return AuthResponse(
@@ -1220,9 +1365,24 @@ async def verify_otp_member(request: VerifyOTPRequest):
 
     del otp_db[request.email]
 
+    was_online = user_has_active_session(user_id)
     access_token = create_access_token(user_id)
 
-    user_response = UserResponse(**{k: v for k, v in user.items() if k != 'password_hash'})
+    if not was_online:
+        await broadcast_to_organization(
+            org_id,
+            {
+                'type': 'user_status_change',
+                'user_id': user_id,
+                'user_name': user['name'],
+                'user_avatar': user.get('avatar'),
+                'is_online': True
+            }
+        )
+
+    user_payload = {k: v for k, v in user.items() if k != 'password_hash'}
+    user_payload['is_online'] = True
+    user_response = UserResponse(**user_payload)
     org_response = OrganizationResponse(**organization)
 
     return AuthResponse(
@@ -1236,63 +1396,72 @@ async def verify_otp_member(request: VerifyOTPRequest):
 
 @app.post("/api/auth/logout")
 async def logout(current_user: dict = Depends(get_current_user)):
-    tokens_to_remove = [token for token, uid in sessions_db.items() if uid == current_user['id']]
+    user_id = current_user.get('id')
+    tokens_to_remove = [token for token, uid in sessions_db.items() if uid == user_id]
     for token in tokens_to_remove:
         del sessions_db[token]
     
-    logger.info(f"User logged out: {current_user['email']}")
+    logger.info(f"User logged out: {current_user['email']} (removed {len(tokens_to_remove)} token(s))")
+
+    if not user_has_active_session(user_id):
+        payload = {
+            'type': 'user_status_change',
+            'user_id': user_id,
+            'user_name': current_user.get('name'),
+            'user_avatar': current_user.get('avatar'),
+            'is_online': False
+        }
+        org_id = current_user.get('organization_id')
+        if org_id:
+            await broadcast_to_organization(org_id, payload)
+    
     return {"message": "Successfully logged out"}
 
 # Issue endpoints
 @app.get("/api/issues", response_model=List[IssueResponse])
-async def get_issues(current_user: dict = Depends(get_current_user)):
+async def get_issues(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     logger.info(f"Getting issues for user: {current_user['email']} (role: {current_user['role']})")
-    
+
+    org_id = current_user['organization_id']
+    user_id = current_user['id']
     user_role = current_user.get('role')
-    if hasattr(user_role, 'value'):
+    if hasattr(user_role, "value"):
         user_role = user_role.value
-    
-    if user_role in ['super_admin', 'admin', 'project_manager']:
-        org_issues = [
-            issue for issue in issues_db.values() 
-            if issue.get('organization_id') == current_user['organization_id']
-        ]
-        logger.info(f"Admin user - returning {len(org_issues)} issues")
-    else:
-        org_issues = [
-            issue for issue in issues_db.values() 
-            if (issue.get('organization_id') == current_user['organization_id'] and
-                (issue.get('reporter_id') == current_user['id'] or
-                 issue.get('assignee_id') == current_user['id'] or
-                 issue.get('visibility', 'public') == 'public'))
-        ]
-        logger.info(f"Regular user - returning {len(org_issues)} issues")
-    
-    # Add comments to issues and ensure all required fields exist
-    processed_issues = []
-    for issue in org_issues:
-        # Ensure visibility field exists (defensive programming)
-        if 'visibility' not in issue:
-            issue['visibility'] = 'public'
-        if 'deadline' not in issue:
-            issue['deadline'] = None
-        
-        # Add comments
-        issue_comments = [c for c in comments_db.values() if c.get('issue_id') == issue['id']]
-        issue['comments'] = issue_comments
-        
-        # Create response object safely
-        try:
-            processed_issues.append(IssueResponse(**issue))
-        except Exception as e:
-            logger.error(f"Failed to create IssueResponse for issue {issue.get('id', 'unknown')}: {e}")
-            logger.error(f"Issue data: {issue}")
-            continue
-    
+
+    query = db.query(IssueModel).filter(IssueModel.organization_id == org_id)
+
+    if user_role not in ['super_admin', 'admin', 'project_manager']:
+        query = query.filter(
+            or_(
+                IssueModel.reporter_id == user_id,
+                IssueModel.assignee_id == user_id,
+                IssueModel.visibility == 'public'
+            )
+        )
+
+    issues = query.order_by(IssueModel.created_at.desc()).all()
+    logger.info(f"Found {len(issues)} issues for organization {org_id}")
+
+    processed_issues: List[IssueResponse] = []
+    for issue_model in issues:
+        serialized = issue_model_to_dict(issue_model)
+        issues_db[issue_model.id] = {
+            **serialized,
+            "comments": [c for c in comments_db.values() if c.get('issue_id') == issue_model.id]
+        }
+        processed_issues.append(issue_dict_to_response(serialized))
+
     return processed_issues
 
 @app.post("/api/issues", response_model=IssueResponse)
-async def create_issue(request: CreateIssueRequest, current_user: dict = Depends(get_current_user)):
+async def create_issue(
+    request: CreateIssueRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     logger.info(f"Creating issue: {request.title}")
     
     user_role = current_user.get("role")
@@ -1343,54 +1512,65 @@ async def create_issue(request: CreateIssueRequest, current_user: dict = Depends
         visibility = 'public'
     
     issue_id = str(uuid.uuid4())
-    issue = {
-        "id": issue_id,
-        "key": generate_issue_key(current_user['organization_id']),
-        "title": request.title.strip(),
-        "description": request.description.strip() if request.description else "",
-        "issue_type": request.issue_type,
-        "status": IssueStatus.TODO,
-        "priority": request.priority,
-        "story_points": request.story_points,
-        "assignee_id": request.assignee_id,
-        "reporter_id": current_user['id'],
-        "organization_id": current_user['organization_id'],
-        "labels": request.labels or [],
-        "visibility": visibility,
-        "deadline": request.deadline.isoformat() if request.deadline else None,
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat()
-    }
-    
-    issues_db[issue_id] = issue
-    save_issue_data(issue)
-    
-    logger.info(f"Issue created: {issue['key']} by {current_user['name']} (role: {user_role})")
+    now = datetime.utcnow()
+    issue_model = IssueModel(
+        id=issue_id,
+        key=generate_issue_key(current_user['organization_id']),
+        title=request.title.strip(),
+        description=request.description.strip() if request.description else "",
+        issue_type=ModelIssueType(request.issue_type.value if hasattr(request.issue_type, "value") else request.issue_type),
+        status=ModelIssueStatus.TODO,
+        priority=ModelPriority(request.priority.value if hasattr(request.priority, "value") else request.priority),
+        story_points=request.story_points,
+        assignee_id=request.assignee_id,
+        reporter_id=current_user['id'],
+        organization_id=current_user['organization_id'],
+        labels=request.labels or [],
+        visibility=visibility,
+        due_date=request.deadline,
+        created_at=now,
+        updated_at=now,
+    )
+
+    db.add(issue_model)
+    db.commit()
+    db.refresh(issue_model)
+
+    serialized_issue = issue_model_to_dict(issue_model)
+    issues_db[issue_id] = {**serialized_issue, "comments": []}
+    save_issue_data(serialized_issue)
+
+    logger.info(f"Issue created: {serialized_issue['key']} by {current_user['name']} (role: {user_role})")
     log_data_state()
-    
-    return IssueResponse(**issue)
+
+    return issue_dict_to_response(serialized_issue)
 
 @app.put("/api/issues/{issue_id}", response_model=IssueResponse)
 async def update_issue(
     issue_id: str,
     request: UpdateIssueRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     logger.info(f"Updating issue: {issue_id}")
-    
-    issue = issues_db.get(issue_id)
-    if not issue:
+
+    issue_model = (
+        db.query(IssueModel)
+        .filter(IssueModel.id == issue_id)
+        .first()
+    )
+    if not issue_model:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Issue not found"
         )
-    
-    if issue.get('organization_id') != current_user['organization_id']:
+
+    if issue_model.organization_id != current_user['organization_id']:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
         )
-    
+
     if request.assignee_id:
         assignee = users_db.get(request.assignee_id)
         if not assignee or assignee.get('organization_id') != current_user['organization_id']:
@@ -1398,63 +1578,118 @@ async def update_issue(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid assignee"
             )
-    
-    update_data = request.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        if field == "deadline":
-            if value is None:
-                issue[field] = None
-            elif isinstance(value, datetime):
-                issue[field] = value.isoformat()
-            else:
-                issue[field] = value
-            continue
 
-        if value is not None:
-            if field == "title" and not value.strip():
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Issue title cannot be empty"
-                )
-            if field == "story_points" and (value < 1 or value > 21):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Story points must be between 1 and 21"
-                )
-            issue[field] = value.strip() if isinstance(value, str) else value
-        else:
-            issue[field] = value
-    
-    issue['updated_at'] = datetime.utcnow().isoformat()
-    
-    save_issue_data(issue)
-    
-    logger.info(f"Issue updated: {issue['key']} by {current_user['name']}")
-    
-    return IssueResponse(**issue)
+    update_data = request.dict(exclude_unset=True)
+
+    if "title" in update_data:
+        new_title = update_data["title"]
+        if new_title is not None and not new_title.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Issue title cannot be empty"
+            )
+        issue_model.title = new_title.strip() if new_title else issue_model.title
+
+    if "description" in update_data:
+        desc = update_data["description"]
+        issue_model.description = desc.strip() if desc else ""
+
+    if "issue_type" in update_data and update_data["issue_type"]:
+        issue_model.issue_type = ModelIssueType(
+            update_data["issue_type"].value if hasattr(update_data["issue_type"], "value") else update_data["issue_type"]
+        )
+
+    if "status" in update_data and update_data["status"]:
+        issue_model.status = ModelIssueStatus(
+            update_data["status"].value if hasattr(update_data["status"], "value") else update_data["status"]
+        )
+
+    if "priority" in update_data and update_data["priority"]:
+        issue_model.priority = ModelPriority(
+            update_data["priority"].value if hasattr(update_data["priority"], "value") else update_data["priority"]
+        )
+
+    if "story_points" in update_data:
+        sp = update_data["story_points"]
+        if sp is not None and (sp < 1 or sp > 21):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Story points must be between 1 and 21"
+            )
+        issue_model.story_points = sp
+
+    if "assignee_id" in update_data:
+        issue_model.assignee_id = update_data["assignee_id"]
+
+    if "labels" in update_data:
+        issue_model.labels = update_data["labels"] or []
+
+    if "visibility" in update_data and update_data["visibility"]:
+        issue_model.visibility = update_data["visibility"]
+
+    if "deadline" in update_data:
+        deadline = update_data["deadline"]
+        if isinstance(deadline, datetime):
+            issue_model.due_date = deadline
+        elif deadline is None:
+            issue_model.due_date = None
+
+    if "epic_id" in update_data:
+        issue_model.epic_id = update_data["epic_id"]
+
+    if "sprint_id" in update_data:
+        issue_model.sprint_id = update_data["sprint_id"]
+
+    issue_model.updated_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(issue_model)
+
+    serialized_issue = issue_model_to_dict(issue_model)
+    issues_db[issue_id] = {
+        **serialized_issue,
+        "comments": [c for c in comments_db.values() if c.get('issue_id') == issue_id]
+    }
+    save_issue_data(serialized_issue)
+
+    logger.info(f"Issue updated: {serialized_issue['key']} by {current_user['name']}")
+
+    return issue_dict_to_response(serialized_issue)
 
 @app.delete("/api/issues/{issue_id}")
-async def delete_issue(issue_id: str, current_user: dict = Depends(get_current_user)):
+async def delete_issue(
+    issue_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     logger.info(f"Deleting issue: {issue_id}")
-    
-    issue = issues_db.get(issue_id)
-    if not issue:
+
+    issue_model = (
+        db.query(IssueModel)
+        .filter(IssueModel.id == issue_id)
+        .first()
+    )
+    if not issue_model:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Issue not found"
         )
-    
-    if issue.get('organization_id') != current_user['organization_id']:
+
+    if issue_model.organization_id != current_user['organization_id']:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
         )
-    
-    del issues_db[issue_id]
-    
-    logger.info(f"Issue deleted: {issue['key']} by {current_user['name']}")
+
+    db.delete(issue_model)
+    db.commit()
+
+    issues_db.pop(issue_id, None)
+    remove_issue_from_file(issue_id)
+
+    logger.info(f"Issue deleted: {issue_model.key} by {current_user['name']}")
     log_data_state()
-    
+
     return {"message": "Issue deleted successfully"}
 
 # Comment endpoints
@@ -1528,8 +1763,11 @@ async def get_users(current_user: dict = Depends(get_current_user)):
     org_id = current_user.get("organization_id")
     users = [u for u in users_db.values() if u.get("organization_id") == org_id]
     
-    # Add online status based on presence counters
-    online_user_ids = set(presence_counters.get(org_id, {}).keys())
+    # Online users determined by active access tokens (with presence as a secondary signal)
+    online_user_ids = get_online_user_ids_for_org(org_id)
+    online_user_ids.update({
+        user_id for user_id, count in presence_counters.get(org_id, {}).items() if count > 0
+    })
     
     user_responses = []
     for u in users:
@@ -1567,6 +1805,7 @@ async def update_my_avatar(request: UpdateAvatarRequest, current_user: dict = De
     role_value = sanitized.get('role')
     if hasattr(role_value, 'value'):
         sanitized['role'] = role_value.value
+    sanitized['is_online'] = user_has_active_session(user_id)
 
     return UserResponse(**sanitized)
 
@@ -1616,6 +1855,7 @@ async def update_user_profile(user_id: str, request: UpdateProfileRequest, curre
     role_value = sanitized.get('role')
     if hasattr(role_value, 'value'):
         sanitized['role'] = role_value.value
+    sanitized['is_online'] = user_has_active_session(user_id)
 
     return UserResponse(**sanitized)
 
@@ -1650,6 +1890,7 @@ async def update_profile_picture(request: UpdateProfilePictureRequest, current_u
     role_value = sanitized.get('role')
     if hasattr(role_value, 'value'):
         sanitized['role'] = role_value.value
+    sanitized['is_online'] = user_has_active_session(user_id)
 
     return UserResponse(**sanitized)
 
@@ -1674,7 +1915,9 @@ async def update_user_role(user_id: str, request: UpdateRoleRequest, current_use
     users_db[user_id] = user
     update_user_data(user)
 
-    return UserResponse(**{k: v for k, v in user.items() if k != "password_hash"})
+    payload = {k: v for k, v in user.items() if k != "password_hash"}
+    payload['is_online'] = user_has_active_session(user_id)
+    return UserResponse(**payload)
 
 # Chat API Endpoints
 @app.get("/api/chat/conversations", response_model=List[ConversationResponse])
@@ -2083,10 +2326,11 @@ async def get_chat_users(current_user: dict = Depends(get_current_user)):
         org_id = current_user['organization_id']
         org_users = [u for u in users_db.values() if u.get('organization_id') == org_id and u.get('is_active', True)]
         
-        # Add online status based on active connections
-        online_user_ids = {
+        # Combine token-based online detection with active connections as fallback
+        online_user_ids = get_online_user_ids_for_org(org_id)
+        online_user_ids.update({
             user_id for user_id, count in presence_counters.get(org_id, {}).items() if count > 0
-        }
+        })
         
         # Create response with online status
         user_responses = []
@@ -2156,7 +2400,7 @@ async def chat_stream(request: Request, token: str):
             except ValueError:
                 pass
             went_offline = _decrement_presence(org_id, user_data['id'])
-            if went_offline:
+            if went_offline and not user_has_active_session(user_data['id']):
                 await broadcast_to_organization(
                     org_id,
                     {
@@ -2177,11 +2421,15 @@ async def chat_status(current_user: dict = Depends(get_current_user)):
     active_web_connections = active_chat_connections.get(org_id, [])
     presence = presence_counters.get(org_id, {})
 
+    token_online_ids = get_online_user_ids_for_org(org_id)
+    presence_online_ids = {user_id for user_id, count in presence.items() if count > 0}
+    combined_online_ids = token_online_ids | presence_online_ids
+
     online_users = []
-    for user_id, count in presence.items():
-        if count <= 0:
-            continue
+    for user_id in combined_online_ids:
         user_record = users_db.get(user_id, {})
+        if not user_record:
+            continue
         online_users.append({
             'user_id': user_id,
             'user_name': user_record.get('name', ''),
@@ -2190,6 +2438,7 @@ async def chat_status(current_user: dict = Depends(get_current_user)):
     return {
         'organization_id': org_id,
         'active_connections': sum(presence.values()) if presence else len(active_web_connections),
+        'token_online_count': len(token_online_ids),
         'online_users': online_users,
         'total_messages': len(conversation_messages_db),
         'total_conversations': len(conversations_db),
@@ -2318,7 +2567,7 @@ async def websocket_chat(websocket: WebSocket, token: str):
         # Remove from chat connections
         went_offline = remove_chat_connection(org_id, websocket, user_data['id'])
 
-        if went_offline:
+        if went_offline and not user_has_active_session(user_data['id']):
             await broadcast_to_organization(
                 org_id,
                 {
@@ -2521,7 +2770,7 @@ async def websocket_chat(websocket: WebSocket, token: str):
         # Remove from chat connections
         went_offline = remove_chat_connection(org_id, websocket, user_data['id'])
 
-        if went_offline:
+        if went_offline and not user_has_active_session(user_data['id']):
             await broadcast_to_organization(
                 org_id,
                 {
@@ -2536,61 +2785,74 @@ async def websocket_chat(websocket: WebSocket, token: str):
 # Enhanced login endpoint with better token logging
 @app.post("/api/auth/login", response_model=AuthResponse)
 async def login(request: LoginRequest):
-    logger.info(f"🔐 Login request for: {request.email}")
-    
+    logger.info(f"Login request for: {request.email}")
+
     user = None
     for u in users_db.values():
         if u.get('email') == request.email:
             user = u
             break
-    
+
     if not user:
-        logger.warning(f"❌ Login failed - user not found: {request.email}")
+        logger.warning(f"Login failed - user not found: {request.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
     if not verify_password(request.password, user.get('password_hash', '')):
-        logger.warning(f"❌ Login failed - wrong password: {request.email}")
+        logger.warning(f"Login failed - wrong password: {request.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
     if not user.get('is_active', False):
-        logger.warning(f"❌ Login failed - user inactive: {request.email}")
+        logger.warning(f"Login failed - user inactive: {request.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User account is inactive"
         )
-    
+
     organization = organizations_db.get(user['organization_id'])
     if not organization:
-        logger.error(f"❌ Organization not found for user: {user['organization_id']}")
+        logger.error(f"Organization not found for user: {user['organization_id']}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Organization not found"
         )
-    
+
     # Ensure team conversation exists
     create_team_conversation(user['organization_id'])
-    
+
+    was_online = user_has_active_session(user['id'])
     access_token = create_access_token(user['id'])
-    
-    logger.info(f"✅ Login successful: {user['name']} ({user['email']})")
-    logger.info(f"🎟️ Token created: {access_token[:10]}...")
-    
-    user_response = UserResponse(**{k: v for k, v in user.items() if k != 'password_hash'})
+    if not was_online:
+        await broadcast_to_organization(
+            user['organization_id'],
+            {
+                'type': 'user_status_change',
+                'user_id': user['id'],
+                'user_name': user['name'],
+                'user_avatar': user.get('avatar'),
+                'is_online': True
+            }
+        )
+
+    logger.info(f"Login successful: {user['name']} ({user['email']})")
+    logger.info(f"Token created: {access_token[:10]}...")
+
+    user_payload = {k: v for k, v in user.items() if k != "password_hash"}
+    user_payload['is_online'] = True
+    user_response = UserResponse(**user_payload)
     org_response = OrganizationResponse(**organization)
-    
+
     return AuthResponse(
         access_token=access_token,
         token_type="bearer",
         user=user_response,
         organization=org_response
     )
-
 @app.get("/debug/clear-users")
 async def debug_clear_users():
     global users_db, sessions_db
@@ -2665,6 +2927,18 @@ async def general_exception_handler(request, exc):
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting Scope API...")
+
+    # Log database configuration
+    logger.info(f"Database URL: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL}")
+
+    # Initialize database (create tables if they don't exist)
+    try:
+        init_db()
+        logger.info("Database tables initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+        raise
+
     load_data_from_files()
     load_chat_data_from_files()
     log_data_state()
